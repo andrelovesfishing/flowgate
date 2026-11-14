@@ -2,7 +2,7 @@
 
 **A fast, label-free "should I act on this?" gate for assistants.**
 
-An assistant gets questions it was built for ("set a timer") and questions it wasn't ("write a poem about tax law"). Before acting, it needs a cheap check: *is this for me?* flowgate learns that check from in-scope questions only, then makes the check fast enough to run in under a millisecond on a single CPU thread.
+An assistant can get asked relevant questions ("set a timer"), but also some that are less so ("turn evil"). Before acting, it needs a quick check: *is this for me?* flowgate learns how to do this, trained with in-scope questions only, then makes the check fast enough to run on-device.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/frontier-dark.png">
@@ -13,7 +13,18 @@ An assistant gets questions it was built for ("set a timer") and questions it wa
 
 The gate learns what in-scope questions look like and flags questions that don't fit. It is trained without any out-of-scope questions.
 
-It has two parts: a teacher (flow model) and a student (flow map). The teacher learns the shape of the in-scope data. Its score is accurate but slow: thousands of network calls per question. The student is a second network, trained on the teacher's paths to give the same score in one or two calls.
+```
+"set a timer for 10 min"
+        │
+   1. Encoder (ModernBERT)   turns the question into a vector
+        │
+   2. Gate (flowgate)        scores the vector: is this for me?
+        │
+   3. Assistant              yes: does the job
+                             no: says it can't help, or passes it on
+```
+
+flowgate has two parts: a teacher (flow model) and a student (flow map). The teacher learns the shape of the in-scope data. Its score is accurate but slow: thousands of network calls per question. The student is a second network, trained on the teacher's paths to give the same score in one or two calls.
 
 1. **Embed.** Each question becomes a vector: frozen ModernBERT-base, mean-pooled. These are projected to 128 PCA directions and whitened, so a Gaussian fitted to the in-scope questions has distribution N(0, I)
 2. **Learn the shape of the in-scope cloud.** A flow-matching model learns the density of in-scope questions, without using labels
@@ -74,7 +85,3 @@ The test split is refused unless `--final` is passed; it was used once, exactly 
 | `stats.py` | AUROC and paired bootstrap confidence intervals |
 | `gmm.py`, `latency.py` | GMM baseline scorer; the timing protocol |
 | `cli.py` | The commands above |
-
----
-
-Research design, experiments and interpretation by Andre; implementation AI-assisted (Claude Code).
