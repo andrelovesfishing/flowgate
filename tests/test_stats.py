@@ -27,3 +27,14 @@ def test_bootstrap_is_seeded():
     s, is_oos, rng = _data()
     t = s + rng.normal(size=len(s))
     assert paired_auroc_diff(s, t, is_oos, n_boot=200) == paired_auroc_diff(s, t, is_oos, n_boot=200)
+
+
+def test_vectorised_bootstrap_matches_reference_loop_including_ties():
+    from kwa.metrics import auroc_oos
+
+    from flowgate.stats import _auroc_rows
+    s, is_oos, rng = _data(n_in=200, n_oos=60)
+    s = np.round(s, 1)  # plenty of ties
+    idx = rng.integers(len(s), size=(25, len(s)))
+    ref = np.array([auroc_oos(s[i], is_oos[i]) for i in idx])
+    np.testing.assert_allclose(_auroc_rows(s[idx], is_oos[idx]), ref, atol=1e-12)
