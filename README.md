@@ -11,7 +11,7 @@ An assistant can get asked relevant questions ("set a timer"), but also some tha
 
 ## Method
 
-The gate learns what in-scope questions look like and flags questions that don't fit. It is trained without any out-of-scope questions.
+flowgate learns what in-scope questions look like and flags questions that don't fit. It is trained without any out-of-scope questions.
 
 ```
 "set a timer for 10 min"
@@ -24,7 +24,7 @@ The gate learns what in-scope questions look like and flags questions that don't
                              no: says it can't help, or passes it on
 ```
 
-flowgate has two parts: a teacher (flow model) and a student (flow map). The teacher learns the shape of the in-scope data. Its score is accurate but slow: thousands of network calls per question. The student is a second network, trained on the teacher's paths to give the same score in one or two calls.
+The gate has two parts: a teacher (flow model) and a student (flow map). The teacher learns the shape of the in-scope data. Its score is accurate but slow: thousands of network calls per question. The student is a second network, trained on the teacher's paths to give the same score in one or two calls.
 
 1. **Embed.** Each question becomes a vector: frozen ModernBERT-base, mean-pooled. These are projected to 128 PCA directions and whitened, so a Gaussian fitted to the in-scope questions has distribution N(0, I)
 2. **Learn the shape of the in-scope cloud.** A flow-matching model learns the density of in-scope questions, without using labels
