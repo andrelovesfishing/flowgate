@@ -30,7 +30,7 @@ def test_bootstrap_is_seeded():
 
 
 def test_vectorised_bootstrap_matches_reference_loop_including_ties():
-    from kwa.metrics import auroc_oos
+    from flowgate.stats import auroc_oos
 
     from flowgate.stats import _auroc_rows
     s, is_oos, rng = _data(n_in=200, n_oos=60)

@@ -3,7 +3,6 @@
 The flow is fitted to unlabeled in-scope train embeddings. The score asks how much more likely a
 query is under the flexible density than under one Gaussian fitted to the same data, so it
 cancels the "generic sentence" directions that a raw likelihood is dominated by. Higher = act.
-Implements kwa's Gate interface so kwa's metrics apply unchanged.
 """
 from __future__ import annotations
 
@@ -11,8 +10,8 @@ import time
 
 import numpy as np
 import torch
-from kwa.gates import Gate, SplitData
 
+from .data import SplitData
 from .likelihood import ode_logp, std_normal_logpdf
 from .net import FlowMapNet
 from .space import Space
@@ -27,7 +26,7 @@ def early_stop_split(n: int, seed: int, frac: float = 0.1):
     return perm[n_es:], perm[:n_es]
 
 
-class FlowRatioGate(Gate):
+class FlowRatioGate:
     def __init__(self, space_key: str = "frozen", d: int = 128, kind: str = "pca", width: int = 512,
                  depth: int = 4, ode_steps: int = 32, train_cfg: TrainConfig | None = None,
                  early_stop_frac: float = 0.1):

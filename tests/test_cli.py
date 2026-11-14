@@ -9,11 +9,10 @@ def test_test_split_needs_final_flag():
 
 
 def test_loads_cached_clinc_train_split():
-    from kwa.config import data_dir
-
     from flowgate.cli import _split
-    if not (data_dir() / "cache").exists():
-        pytest.skip("no kwa embedding cache on this machine")
+    from flowgate.data import cache_path
+    if not (cache_path() / "train.npz").exists():
+        pytest.skip("no embedding cache on this machine")
     tr = _split("train")
     assert tr.emb["frozen"].shape == (15000, 768) and (tr.labels >= 0).all()
 
@@ -29,7 +28,7 @@ def test_model_key_depends_on_training_settings_only():
 
 def test_baselines_return_per_point_scores_and_cache_them(tmp_path):
     import numpy as np
-    from kwa.gates import SplitData
+    from flowgate.data import SplitData
 
     from flowgate.cli import baselines
     rng = np.random.default_rng(0)
@@ -104,7 +103,7 @@ def test_timed_functions_compute_the_same_scores_as_the_scored_methods():
     evaluated on, so the timing pass times the real thing."""
     import numpy as np
     import torch
-    from kwa.gates import SplitData
+    from flowgate.data import SplitData
     from sklearn.mixture import GaussianMixture
 
     from flowgate.cli import baselines, gate_timers

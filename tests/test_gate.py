@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
-from kwa.gates import SplitData
-from kwa.metrics import auroc_oos
 
+from flowgate.data import SplitData
 from flowgate.gate import FlowRatioGate
+from flowgate.stats import auroc_oos
 from flowgate.train import TrainConfig
 
 

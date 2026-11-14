@@ -1,5 +1,6 @@
 """flowgate CLI.
 
+  embed  download CLINC150 and ModernBERT-base, and cache the embeddings (once)
   r1     train (or reuse) one flow-ratio gate and score it on cal (val + train_oos) or, once, on test
   sweep  run r1 over a grid of d x width on cal and print one table
   r2     distil a trained r1 teacher into a few-step flow map (or the direct ablation) and score it
@@ -23,11 +24,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from kwa.backbones import load_cache
-from kwa.config import data_dir
-from kwa.gates import SplitData
-from kwa.metrics import auroc_oos
 
+from .data import SplitData, build_cache, data_dir, load_cache
 from .distill import (KINDS, DistillConfig, Student, Trajectories, make_starts, record, student_score,
                       train_student, val_error)
 from .gate import FlowRatioGate, early_stop_split
@@ -36,10 +34,9 @@ from .latency import ms_per_query, time_interleaved
 from .likelihood import ode_logp, std_normal_logpdf
 from .net import FlowMapNet
 from .space import Space
-from .stats import paired_auroc_diff
+from .stats import auroc_oos, paired_auroc_diff
 from .train import TrainConfig
 
-BACKBONE, DATASET = "answerdotai/ModernBERT-base", "clinc150"
 N_PROBE = 200
 
 
@@ -48,7 +45,7 @@ def root() -> Path:
 
 
 def _split(name: str) -> SplitData:
-    z = load_cache(BACKBONE, DATASET, name, data_dir())
+    z = load_cache(name)
     return SplitData(labels=z["label"].astype(int), emb={"frozen": z["emb"].astype(np.float32)})
 
 
@@ -142,6 +139,10 @@ def get_gate(a, train: SplitData) -> FlowRatioGate:
     path.parent.mkdir(parents=True, exist_ok=True)
     g.save(path)
     return g
+
+
+def embed(a: argparse.Namespace) -> None:
+    print(f"cached at {build_cache(device=a.device)}")
 
 
 def r1(a: argparse.Namespace) -> dict:
@@ -574,6 +575,9 @@ def _parser() -> argparse.ArgumentParser:
     tp.add_argument("--rounds", type=int, default=5)
     tp.add_argument("--queries", type=int, default=200, help="distinct cal embeddings to cycle through")
     tp.set_defaults(func=timing)
+    e = sub.add_parser("embed", help="download CLINC150 + ModernBERT-base and cache the embeddings (once)")
+    e.add_argument("--device", default="cpu")
+    e.set_defaults(func=embed)
     return p
 
 

@@ -8,7 +8,14 @@ separately, so every replicate keeps the original class counts.
 from __future__ import annotations
 
 import numpy as np
-from kwa.metrics import auroc_oos
+from sklearn.metrics import roc_auc_score
+
+
+def auroc_oos(score: np.ndarray, is_oos: np.ndarray) -> float:
+    """AUROC of 'higher score = in-scope': the chance a random in-scope point outscores a random OOS one."""
+    if is_oos.all() or (~is_oos).all():
+        return float("nan")
+    return float(roc_auc_score((~is_oos).astype(int), score))
 
 
 def _auroc_rows(S: np.ndarray, oos: np.ndarray) -> np.ndarray:
