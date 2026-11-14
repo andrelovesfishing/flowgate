@@ -19,6 +19,14 @@ from .space import Space
 from .train import TrainConfig, train_velocity
 
 
+def early_stop_split(n: int, seed: int, frac: float = 0.1):
+    """(train indices, held-out indices) for early stopping. Taken from train, so val stays clean;
+    shared with R2 so the student is validated on exactly the points the teacher never trained on."""
+    perm = torch.randperm(n, generator=torch.Generator().manual_seed(seed))
+    n_es = max(1, int(frac * n))
+    return perm[n_es:], perm[:n_es]
+
+
 class FlowRatioGate(Gate):
     def __init__(self, space_key: str = "frozen", d: int = 128, kind: str = "pca", width: int = 512,
                  depth: int = 4, ode_steps: int = 32, train_cfg: TrainConfig | None = None,
@@ -36,12 +44,11 @@ class FlowRatioGate(Gate):
         self.space = Space.fit(X, self.d, self.kind)
         z = torch.from_numpy(self.space.transform(X))
         # early-stopping hold-out comes from train, so the val split stays clean for selection
-        perm = torch.randperm(len(z), generator=torch.Generator().manual_seed(self.train_cfg.seed))
-        n_es = max(1, int(self.early_stop_frac * len(z)))
+        tr_idx, es_idx = early_stop_split(len(z), self.train_cfg.seed, self.early_stop_frac)
         torch.manual_seed(self.train_cfg.seed)
         self.net = FlowMapNet(self.d, self.width, self.depth)
         t0 = time.perf_counter()
-        self.net, self.history = train_velocity(self.net, z[perm[n_es:]], z[perm[:n_es]], self.train_cfg, log=log)
+        self.net, self.history = train_velocity(self.net, z[tr_idx], z[es_idx], self.train_cfg, log=log)
         self.fit_seconds = time.perf_counter() - t0
         self.net.eval()
         return self

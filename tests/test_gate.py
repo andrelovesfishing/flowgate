@@ -55,3 +55,13 @@ def test_saved_and_reloaded_gate_scores_identically(tmp_path):
     h = FlowRatioGate.load(tmp_path / "ckpt.pt")
     np.testing.assert_array_equal(g.score(ev), h.score(ev))
     assert h.history == g.history and h.fit_seconds == g.fit_seconds
+
+
+def test_early_stop_split_is_seeded_disjoint_and_matches_fraction():
+    import torch
+
+    from flowgate.gate import early_stop_split
+    tr, ho = early_stop_split(1000, seed=3, frac=0.1)
+    tr2, ho2 = early_stop_split(1000, seed=3, frac=0.1)
+    assert len(ho) == 100 and len(tr) == 900 and torch.equal(ho, ho2)
+    assert set(tr.tolist()).isdisjoint(ho.tolist()) and len(set(tr.tolist()) | set(ho.tolist())) == 1000

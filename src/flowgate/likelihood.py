@@ -49,3 +49,26 @@ def ode_logp(vel: Velocity, x1: torch.Tensor, steps: int = 32, chunk: int = 256)
             x = x + h * vel(xm, tm)
         # acc = integral from 1 to 0 of div v dt = -integral_0^1 div v dt
         return std_normal_logpdf(x) + acc
+
+
+def ode_trajectory(vel: Velocity, x1: torch.Tensor, steps: int = 32, chunk: int = 256):
+    """The oracle's whole path, recorded once so a few-step flow map can be distilled from it (R2).
+
+    Same midpoint arithmetic as ode_logp (kept separate so the scoring oracle is never touched).
+    Returns xs [steps + 1, B, d] with xs[k] at time t_k = 1 - k / steps (xs[0] = x1), and
+    L [steps + 1, B] with L[k] = integral from 1 to t_k of div v dt (L[0] = 0). Then
+        log p_{t_j}(xs[j]) - log p_{t_i}(xs[i]) = -(L[j] - L[i]),   log p_1(x1) = log N(xs[-1]) + L[-1].
+    """
+    with torch.no_grad():
+        x = x1.clone()
+        acc = torch.zeros(len(x), dtype=x.dtype)
+        xs, Ls = [x.clone()], [acc.clone()]
+        h = -1.0 / steps
+        for k in range(steps):
+            t = torch.full((len(x),), 1.0 + k * h, dtype=x.dtype)
+            tm = t + h / 2
+            xm = x + (h / 2) * vel(x, t)
+            acc = acc + h * exact_div(vel, xm, tm, chunk)
+            x = x + h * vel(xm, tm)
+            xs.append(x.clone()); Ls.append(acc.clone())
+        return torch.stack(xs), torch.stack(Ls)
